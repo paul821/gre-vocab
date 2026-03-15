@@ -16,28 +16,33 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 type Props = { bookmarksOnly?: boolean; tierFilter?: number; shuffle?: boolean }
 
-export default function Flashcard({ bookmarksOnly, tierFilter, shuffle }: Props) {
+export default function Flashcard({ bookmarksOnly, tierFilter, shuffle: initialShuffle }: Props) {
   const router = useRouter()
   const { getCard, updateCard, setImgUrl, toggleBookmark, counts, loading } = useProgress()
 
-  const [idx,        setIdx]        = useState(0)
-  const [screen,     setScreen]     = useState<'front' | 'back'>('front')
-  const [imgSrc,     setImgSrc]     = useState<string | null>(null)
-  const [imgLoading, setImgLoading] = useState(false)
-  const [credit,     setCredit]     = useState<string | null>(null)
-  const [anim,       setAnim]       = useState('entering')
+  const [idx,            setIdx]            = useState(0)
+  const [screen,         setScreen]         = useState<'front' | 'back'>('front')
+  const [imgSrc,         setImgSrc]         = useState<string | null>(null)
+  const [imgLoading,     setImgLoading]     = useState(false)
+  const [credit,         setCredit]         = useState<string | null>(null)
+  const [anim,           setAnim]           = useState('entering')
+  const [shuffleOn,      setShuffleOn]      = useState(initialShuffle ?? false)
+  const [strugglingOnly, setStrugglingOnly] = useState(false)
+  const [seedKey,        setSeedKey]        = useState(0)
 
-  // Bug fix 1: build deck AFTER loading completes so bookmarks filter
-  // has real progress data (not empty {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const deck: Word[] = useMemo(() => {
     if (loading) return []
     let words = [...WORDS]
     if (tierFilter) words = words.filter(w => w.tier === tierFilter)
     if (bookmarksOnly) words = words.filter(w => getCard(w.word).bookmarked)
-    if (shuffle) words = shuffleArray(words)
+    if (strugglingOnly) words = words.filter(w => {
+      const c = getCard(w.word)
+      return c.ease < 2.5 || c.status === 'learning'
+    })
+    if (shuffleOn) words = shuffleArray(words)
     return words
-  }, [loading, tierFilter, bookmarksOnly, shuffle])
+  }, [loading, tierFilter, bookmarksOnly, shuffleOn, strugglingOnly, seedKey])
 
   const card  = deck[idx] ?? null
   const state = card ? getCard(card.word) : null
@@ -95,6 +100,19 @@ export default function Flashcard({ bookmarksOnly, tierFilter, shuffle }: Props)
     setCredit(null)
   }
 
+  function handleToggleShuffle() {
+    setShuffleOn(prev => {
+      if (!prev) setSeedKey(k => k + 1)
+      return !prev
+    })
+    setIdx(0); setScreen('front'); setImgSrc(null); setCredit(null)
+  }
+
+  function handleToggleStruggling() {
+    setStrugglingOnly(prev => !prev)
+    setIdx(0); setScreen('front'); setImgSrc(null); setCredit(null)
+  }
+
   // Loading state
   if (loading) return (
     <div className="app"><div className="loading-screen"><div className="spinner"/></div></div>
@@ -127,9 +145,17 @@ export default function Flashcard({ bookmarksOnly, tierFilter, shuffle }: Props)
         <div className="top-bar">
           <button className="top-back-btn" onClick={() => router.push('/')}>‹ Home</button>
           <span className="deck-label">
-            {bookmarksOnly ? '🔖 Bookmarks' : tierFilter ? `Tier ${tierFilter}` : 'All words'}{shuffle ? ' (shuffled)' : ''}
+            {bookmarksOnly ? '🔖 Bookmarks' : tierFilter ? `Tier ${tierFilter}` : 'All words'}
           </span>
           <div className="streak-pill">🔥 streak</div>
+        </div>
+        <div className="toggle-bar">
+          <button className={`toggle-btn ${shuffleOn ? 'toggle-active' : ''}`} onClick={handleToggleShuffle}>
+            Shuffle {shuffleOn ? 'on' : 'off'}
+          </button>
+          <button className={`toggle-btn ${strugglingOnly ? 'toggle-active' : ''}`} onClick={handleToggleStruggling}>
+            Struggling only
+          </button>
         </div>
         <div className="stats-row">
           <div className="stat-chip"><div className="stat-num new">{counts.new}</div><div className="stat-lbl">New</div></div>
