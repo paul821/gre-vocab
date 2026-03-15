@@ -75,15 +75,18 @@ export default function Dashboard({ userEmail }: { userEmail?: string | null }) 
       </div>
 
       <div className="dash-actions">
-        <button className="dash-btn-primary" onClick={() => router.push('/study')}>
-          {due > 0 ? `Study ${due} due cards` : 'Study all cards'}
+        <button className="dash-btn-primary" onClick={() => router.push('/study?shuffle=1')}>
+          {due > 0 ? `Study ${due} due cards` : 'Study all cards'} (shuffled)
+        </button>
+        <button className="dash-btn-secondary" onClick={() => router.push('/study')}>
+          Study in order
         </button>
         {bookmarked > 0 && (
-          <button className="dash-btn-secondary" onClick={() => router.push('/study?mode=bookmarks')}>
+          <button className="dash-btn-secondary" onClick={() => router.push('/study?mode=bookmarks&shuffle=1')}>
             🔖 Review {bookmarked} bookmarked
           </button>
         )}
-        <button className="dash-btn-secondary" onClick={() => router.push('/study?tier=1')}>
+        <button className="dash-btn-secondary" onClick={() => router.push('/study?tier=1&shuffle=1')}>
           Tier 1 only — {tier1Total} highest-frequency words
         </button>
       </div>

@@ -1,12 +1,13 @@
 import Flashcard from '@/components/Flashcard'
 
-type Props = { searchParams: { mode?: string; tier?: string } }
+type Props = { searchParams: { mode?: string; tier?: string; shuffle?: string } }
 
 export default function StudyPage({ searchParams }: Props) {
   return (
     <Flashcard
       bookmarksOnly={searchParams.mode === 'bookmarks'}
       tierFilter={searchParams.tier ? parseInt(searchParams.tier) : undefined}
+      shuffle={searchParams.shuffle === '1'}
     />
   )
 }

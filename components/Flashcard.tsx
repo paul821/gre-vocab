@@ -1,13 +1,22 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useRouter }    from 'next/navigation'
 import { WORDS, Word }  from '@/data/words'
 import { useProgress }  from '@/lib/useProgress'
 import { Rating }       from '@/lib/sm2'
 
-type Props = { bookmarksOnly?: boolean; tierFilter?: number }
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
 
-export default function Flashcard({ bookmarksOnly, tierFilter }: Props) {
+type Props = { bookmarksOnly?: boolean; tierFilter?: number; shuffle?: boolean }
+
+export default function Flashcard({ bookmarksOnly, tierFilter, shuffle }: Props) {
   const router = useRouter()
   const { getCard, updateCard, setImgUrl, toggleBookmark, counts, loading } = useProgress()
 
@@ -20,12 +29,15 @@ export default function Flashcard({ bookmarksOnly, tierFilter }: Props) {
 
   // Bug fix 1: build deck AFTER loading completes so bookmarks filter
   // has real progress data (not empty {})
-  const deck: Word[] = loading ? [] : (() => {
-    let words = WORDS
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const deck: Word[] = useMemo(() => {
+    if (loading) return []
+    let words = [...WORDS]
     if (tierFilter) words = words.filter(w => w.tier === tierFilter)
     if (bookmarksOnly) words = words.filter(w => getCard(w.word).bookmarked)
+    if (shuffle) words = shuffleArray(words)
     return words
-  })()
+  }, [loading, tierFilter, bookmarksOnly, shuffle])
 
   const card  = deck[idx] ?? null
   const state = card ? getCard(card.word) : null
@@ -115,7 +127,7 @@ export default function Flashcard({ bookmarksOnly, tierFilter }: Props) {
         <div className="top-bar">
           <button className="top-back-btn" onClick={() => router.push('/')}>‹ Home</button>
           <span className="deck-label">
-            {bookmarksOnly ? '🔖 Bookmarks' : tierFilter ? `Tier ${tierFilter}` : 'All words'}
+            {bookmarksOnly ? '🔖 Bookmarks' : tierFilter ? `Tier ${tierFilter}` : 'All words'}{shuffle ? ' (shuffled)' : ''}
           </span>
           <div className="streak-pill">🔥 streak</div>
         </div>
